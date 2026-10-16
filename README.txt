@@ -7,13 +7,18 @@ Install once. Works in every project.
 INSTALL (once)
 --------------
 
-1. Run the installer for your OS
-2. In REAPER:
-   Preferences → Control/OSC/web → Add
-   → choose “Web browser interface”
-3. Click the "User Pages" button, and in the window that opens, select "ReaCC.html"
-4. In that window, copy the "Access URL" (e.g. http://192.168.0.80:8080). This is what you paste into your browser on your controlling device (phone, iPad, etc.).
-Optional: For ease of access, when you open the Access URL, you can save the webpage to your home screen, aka install the page as an app.
+1. Run the installer for your operating system once. On Windows, press a key
+   when the installer finishes to close its window. It saves a confirmation
+   report, ReaCC_Install_Report.txt, in REAPER's Scripts folder.
+2. If REAPER was open during installation, restart it once. The installer
+   registers the mirror script to start automatically and installs the bridge;
+   the script adds “CC Fader Bridge” to Monitoring FX on REAPER startup.
+3. The installer does not configure REAPER's web server. In REAPER, open
+   Options → Preferences → Control/OSC/web, click Add, and
+   choose “Web browser interface.” Open “User pages…” and select ReaCC.html.
+4. Use the displayed “Access URL” in a browser on your phone or tablet. Keep
+   the device and computer on the same network. You can save the page to your
+   device's home screen for easier access.
 
 
 BASIC USE
@@ -24,20 +29,21 @@ Change the green numbers for different CC numbers.
 Values are remembered automatically.
 
 
-OPTIONAL – Live following (VST parameters)
-------------------------------------------
+OPTIONAL – DAW parameter mirroring
+----------------------------------
 
-1. View → Monitoring FX
-2. Add: JS: CC Fader Bridge
-3. Actions → Show action list
-   → New action → Load ReaScript → CC_Fader_Mirror.lua
-   → click Run
-4. Touch or adjust the VST parameter you want the fader to follow, then click
-   that fader's “Learn VST” button in ReaCC. The button changes to “Learned”
-   when linked. Tap it again to cancel learning or remove the learned link.
+The installer sets up the bridge and mirror script automatically; no second
+installer run or manual Monitoring FX insertion is needed. To mirror a
+plug-in control, move it once in its plug-in window to unlock the buttons, then
+tap “Mirror DAW” on the fader you want to link. Its broken-link icon becomes a
+connected chain and the label becomes “Mirroring.” Tap again to cancel learning
+or remove the link.
 
-The web fader follows manual or automated changes to the learned parameter,
-and writes high-resolution normalized values directly through REAPER. VST MIDI
-learn is not required for a learned fader. Its CC number is used when the fader
-is not linked; the CC entry remains saved and editable. Unlinked faders use
-standard 7-bit MIDI CC resolution.
+The installer preserves any existing Scripts/__startup.lua file and adds one
+ReaCC startup block only once. To disable auto-start, remove the lines between
+“ReaCC startup begin” and “ReaCC startup end” in that file.
+
+The linked fader follows manual or automated changes to the parameter, and the
+phone fader controls it through REAPER. MIDI learn is not required. When a
+fader is not linked, it continues sending its selected standard 7-bit MIDI CC;
+the CC number remains saved and editable.

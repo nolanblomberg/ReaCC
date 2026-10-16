@@ -3,6 +3,14 @@
 
 local SECTION = "CCFaders"
 local BRIDGE_NAME = "CC Fader Bridge"
+
+-- Prevent duplicate loops if the script is started manually and at startup.
+if reaper.GetExtState(SECTION, "mirrorRunning") == "1" then return end
+reaper.SetExtState(SECTION, "mirrorRunning", "1", false)
+reaper.atexit(function()
+  reaper.SetExtState(SECTION, "mirrorRunning", "0", false)
+end)
+
 local UPDATE_HZ = 120
 local nextUpdate = 0
 local lastValue = {}
@@ -23,6 +31,15 @@ local function get_bridge(master)
     if name and name:find(BRIDGE_NAME, 1, true) then return fx end
   end
   return -1
+end
+
+-- Ensure the global Monitoring FX bridge exists. This is safe to repeat:
+-- REAPER queries the existing instance and only creates it when absent.
+do
+  local master = reaper.GetMasterTrack(0)
+  if master and get_bridge(master) < 0 then
+    reaper.TrackFX_AddByName(master, "JS: CC Fader Bridge", true, 1)
+  end
 end
 
 local function track_by_guid(guid)

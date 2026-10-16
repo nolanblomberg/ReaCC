@@ -7,7 +7,7 @@
 <!--
   ReaCC
   Simple MIDI CC faders for REAPER.
-  See README.txt for install and optional Live setup.
+  See README.txt for installation and optional DAW parameter mirroring.
 -->
 <style>
   * { box-sizing: border-box; }
@@ -95,15 +95,23 @@
     margin-bottom: 16px;
   }
   .learn-button {
-    width: 72px;
+    width: 76px;
+    min-height: 30px;
     margin: -8px 0 10px;
-    padding: 5px 2px;
+    padding: 4px 2px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
     border: 1px solid #555;
     border-radius: 4px;
     background: #333;
     color: #bbb;
-    font-size: 0.65rem;
+    font-size: 0.56rem;
+    white-space: nowrap;
   }
+  .learn-button .link-icon { width: 13px; height: 13px; flex: 0 0 13px; }
   .learn-button.locked {
     color: #777d80;
     border-color: #45494b;
@@ -114,7 +122,7 @@
     border-color: #45494b;
     background: #252728;
   }
-  .learn-button.locked::after { content: " 🔒"; font-size: 0.58rem; }
+  .learn-button.locked::after { content: "🔒"; position: absolute; top: -5px; right: -4px; font-size: 0.58rem; }
   .learn-button.pending, .learn-button.learned { color: #1ee890; border-color: #1ee890; }
   .learn-button.failed { color: #ff6b6b; border-color: #ff6b6b; }
   #learn-guide {
@@ -233,7 +241,7 @@
     <div class="fader-group">
       <div class="label">CC</div>
       <input type="number" class="cc-input" id="cc1" value="11" min="0" max="127">
-      <button class="learn-button locked" id="learn1" type="button">Learn VST</button>
+      <button class="learn-button locked" id="learn1" type="button"><span class="link-icon" aria-hidden="true"></span><span class="learn-label">Mirror DAW</span></button>
       <div class="slider-wrapper">
         <input type="range" id="f1" min="0" max="10000" value="0" step="any">
       </div>
@@ -243,7 +251,7 @@
     <div class="fader-group">
       <div class="label">CC</div>
       <input type="number" class="cc-input" id="cc2" value="1" min="0" max="127">
-      <button class="learn-button locked" id="learn2" type="button">Learn VST</button>
+      <button class="learn-button locked" id="learn2" type="button"><span class="link-icon" aria-hidden="true"></span><span class="learn-label">Mirror DAW</span></button>
       <div class="slider-wrapper">
         <input type="range" id="f2" min="0" max="10000" value="0" step="any">
       </div>
@@ -253,7 +261,7 @@
     <div class="fader-group">
       <div class="label">CC</div>
       <input type="number" class="cc-input" id="cc3" value="21" min="0" max="127">
-      <button class="learn-button locked" id="learn3" type="button">Learn VST</button>
+      <button class="learn-button locked" id="learn3" type="button"><span class="link-icon" aria-hidden="true"></span><span class="learn-label">Mirror DAW</span></button>
       <div class="slider-wrapper">
         <input type="range" id="f3" min="0" max="10000" value="0" step="any">
       </div>
@@ -263,7 +271,7 @@
     <div class="fader-group">
       <div class="label">CC</div>
       <input type="number" class="cc-input" id="cc4" value="7" min="0" max="127">
-      <button class="learn-button locked" id="learn4" type="button">Learn VST</button>
+      <button class="learn-button locked" id="learn4" type="button"><span class="link-icon" aria-hidden="true"></span><span class="learn-label">Mirror DAW</span></button>
       <div class="slider-wrapper">
         <input type="range" id="f4" min="0" max="10000" value="0" step="any">
       </div>
@@ -274,25 +282,20 @@
   <dialog id="learn-guide" aria-labelledby="guide-title">
     <h2 id="guide-title">Unlock plug-in linking</h2>
     <p class="guide-overview"><strong>What you’re unlocking:</strong> connect a ReaCC fader directly to a plug-in knob. The phone fader follows that knob and its automation, and moving the phone fader controls the plug-in. Your regular MIDI CC faders keep working without this setup.</p>
-    <p>The optional setup takes two REAPER steps. Add the bridge once, then start the mirror script each time you open REAPER.</p>
-    <h3>1. Add the bridge</h3>
+    <h3>Open ReaCC on your phone (one-time REAPER setup)</h3>
     <ol>
-      <li>In REAPER, choose <strong>View → Monitoring FX</strong>.</li>
-      <li>In the Monitoring FX window, click <strong>Add</strong>, search for <strong>CC Fader Bridge</strong>, and add <strong>JS: CC Fader Bridge</strong>.</li>
+      <li>In REAPER, open <strong>Options → Preferences → Control/OSC/web</strong>, click <strong>Add</strong>, and choose <strong>Web browser interface</strong>.</li>
+      <li>In the web interface settings, open <strong>User pages…</strong> and select <strong>ReaCC.html</strong>.</li>
+      <li>Use the displayed <strong>Access URL</strong> in a browser on your phone or tablet. Keep the device and computer on the same network.</li>
     </ol>
-    <h3>2. Start the mirror script</h3>
+    <h3>Use optional DAW parameter mirroring</h3>
     <ol>
-      <li>Choose <strong>Actions → Show action list</strong>.</li>
-      <li>Click <strong>New action → Load ReaScript</strong>, select <strong>CC_Fader_Mirror.lua</strong>, then click <strong>Run</strong>.</li>
-      <li>Leave the script running. You’ll need to run it again next time REAPER opens.</li>
+      <li>Run the ReaCC installer once. It installs the bridge and registers the mirror script. On the next REAPER launch, the script adds <strong>CC Fader Bridge</strong> to Monitoring FX if needed. If REAPER was already open, restart it once.</li>
+      <li>To link a fader, open a plug-in window and move the control you want to mirror. Audio playback is not required.</li>
     </ol>
-    <h3>3. Unlock and link a control</h3>
-    <ol>
-      <li>Open the instrument’s plug-in window and move the knob you want to link a little. This tells REAPER which control you mean; audio playback is not required.</li>
-      <li>When ReaCC unlocks, tap <strong>Learn VST</strong> on the fader you want to use. It links to the last plug-in control you moved.</li>
-    </ol>
+    <p>When ReaCC unlocks, tap <strong>Mirror DAW</strong> on the fader you want. It links to the last plug-in control you moved. The broken-link icon becomes connected and the label changes to “Mirroring.” Tap again to cancel learning or remove the link.</p>
     <p id="guide-state">Waiting for the bridge and mirror script to respond…</p>
-    <p>If it stays locked, check that <strong>JS: CC Fader Bridge</strong> is in Monitoring FX and that <strong>CC_Fader_Mirror.lua</strong> is running. Then move the plug-in knob again.</p>
+    <p>If it stays locked, make sure REAPER has been restarted since installation, then move a plug-in control again. Regular MIDI CC control works even while mirroring is locked.</p>
     <button id="close-guide" type="button">Close</button>
   </dialog>
 
@@ -303,6 +306,18 @@
 
     // Global ExtState section used by this interface (works across all projects)
     const EXT_SECTION = 'CCFaders';
+    const linkIcons = {
+      disconnected: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8H7a5 5 0 0 0 0 10h4"/><path d="M16 16h1a5 5 0 0 0 0-10h-4"/></svg>',
+      connected: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+    };
+    function renderLearnButton(button, state) {
+      const labels = { idle: 'Mirror DAW', pending: 'Linking…', linked: 'Mirroring', failed: 'Touch FX' };
+      const isLinked = state === 'linked';
+      button.querySelector('.link-icon').innerHTML = isLinked ? linkIcons.connected : linkIcons.disconnected;
+      button.querySelector('.learn-label').textContent = labels[state] || labels.idle;
+      button.setAttribute('aria-label', labels[state] || labels.idle);
+      button.title = state === 'failed' ? 'Move a plug-in control first' : (isLinked ? 'Tap to stop mirroring this DAW control' : 'Link this fader to a DAW control');
+    }
     const remoteTargets = [0, 0, 0, 0];
     const learnedSlots = [false, false, false, false];
     let bridgeActive = false;
@@ -366,14 +381,14 @@
       if (!bridgeActive) {
         guideState.textContent = 'Waiting for the REAPER bridge and mirror script to respond…';
       } else if (available) {
-        guideState.textContent = 'Detected! Close this guide and tap Learn VST to link a control.';
+        guideState.textContent = 'Detected! Close this guide and tap Mirror DAW to link a control.';
       } else {
-        guideState.textContent = 'REAPER is connected. Touch or move a VST control to unlock Learn.';
+        guideState.textContent = 'REAPER is connected. Touch or move a plug-in control to unlock Mirror DAW.';
       }
     }
 
     if (typeof wwr_start !== 'function' || typeof wwr_req !== 'function') {
-      setStatus('Not connected to REAPER. Add a “Web browser interface” in Preferences → Control/OSC/web, then reload.', 'error');
+      setStatus('Not connected to REAPER. In Preferences → Control/OSC/web, add “Web browser interface,” select ReaCC.html under User pages, then reload the Access URL.', 'error');
     } else {
       wwr_start();
       setStatus('Connected', 'ok');
@@ -413,7 +428,7 @@
                 button.classList.toggle('pending', val === '1');
                 button.classList.toggle('learned', val === '2');
                 button.classList.toggle('failed', val === '3');
-                button.textContent = val === '1' ? 'Learning…' : (val === '2' ? 'Learned ✓' : (val === '3' ? 'Touch VST first' : 'Learn VST'));
+                renderLearnButton(button, val === '1' ? 'pending' : (val === '2' ? 'linked' : (val === '3' ? 'failed' : 'idle')));
               }
               refreshLearnUI();
             }
@@ -471,7 +486,7 @@
         valDisplay.textContent = ccValue;
 
         if (learnedSlots[num - 1]) {
-          // Learned VSTs get high-resolution normalized parameter values.
+          // Mirrored FX parameters use high-resolution normalized values.
           wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/target' + num + '/' + normalized.toFixed(6));
         } else {
           wwr_req('OSC/vkb_midi/0/cc/' + cc + ':' + ccValue);
@@ -491,6 +506,7 @@
       });
 
       const learnButton = document.getElementById('learn' + num);
+      renderLearnButton(learnButton, 'idle');
       learnButton.addEventListener('click', () => {
         if (!learnFeatureAvailable()) {
           document.getElementById('learn-guide').showModal();
@@ -503,12 +519,12 @@
           wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/learn' + num + '/0');
           learnedSlots[num - 1] = false;
           learnButton.classList.remove('pending', 'learned', 'failed');
-          learnButton.textContent = 'Learn VST';
+          renderLearnButton(learnButton, 'idle');
         } else {
           wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/learn' + num + '/1');
           learnButton.classList.add('pending');
           learnButton.classList.remove('failed');
-          learnButton.textContent = 'Learning…';
+          renderLearnButton(learnButton, 'pending');
         }
       });
     }
