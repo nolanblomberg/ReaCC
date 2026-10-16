@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ReaCC</title>
+<!--
+  ReaCC
+  Simple MIDI CC faders for REAPER.
+  See README.txt for install and optional Live setup.
+-->
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #1c1c1c;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    touch-action: none;
+  }
+  #status {
+    text-align: center;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    background: #222;
+    border-bottom: 1px solid #333;
+    color: #888;
+    flex-shrink: 0;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 8px 12px 6px;
+    flex-shrink: 0;
+  }
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #f4f7f6;
+    font-size: 1.3rem;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+  }
+  .brand-mark .accent { color: #0be881; }
+  .brand-credit {
+    color: #777;
+    font-size: 0.58rem;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    align-self: flex-end;
+    padding-bottom: 1px;
+  }
+  #status.ok { color: #0be881; }
+  #status.error { color: #ff6b6b; background: #2a1515; }
+  .faders {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: stretch;
+    flex: 1;
+    padding: 16px 0 24px;
+    min-height: 0;
+  }
+  .fader-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 22%;
+    height: 100%;
+  }
+  .label {
+    color: #888;
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .cc-input {
+    width: 48px;
+    text-align: center;
+    background: #333;
+    color: #0be881;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 7px 4px;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 16px;
+  }
+  .learn-button {
+    width: 72px;
+    margin: -8px 0 10px;
+    padding: 5px 2px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #333;
+    color: #bbb;
+    font-size: 0.65rem;
+  }
+  .learn-button.locked {
+    color: #777d80;
+    border-color: #45494b;
+    background: #252728;
+  }
+  .learn-button.locked.pending, .learn-button.locked.learned {
+    color: #777d80;
+    border-color: #45494b;
+    background: #252728;
+  }
+  .learn-button.locked::after { content: " 🔒"; font-size: 0.58rem; }
+  .learn-button.pending, .learn-button.learned { color: #1ee890; border-color: #1ee890; }
+  .learn-button.failed { color: #ff6b6b; border-color: #ff6b6b; }
+  #learn-guide {
+    width: min(340px, calc(100vw - 36px));
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 20px;
+    border: 1px solid #45494b;
+    border-radius: 12px;
+    background: #242626;
+    color: #eee;
+    box-shadow: 0 16px 48px rgba(0,0,0,.55);
+  }
+  #learn-guide::backdrop { background: rgba(0,0,0,.7); }
+  #learn-guide h2 { margin: 0 0 10px; font-size: 1.1rem; }
+  #learn-guide .guide-overview {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-left: 3px solid #0be881;
+    border-radius: 3px;
+    background: #1b3026;
+    color: #d9e6df;
+  }
+  #learn-guide .guide-overview strong { color: #0be881; }
+  #learn-guide h3 { margin: 18px 0 6px; font-size: .9rem; color: #eee; }
+  #learn-guide p, #learn-guide li { color: #bbb; font-size: .85rem; line-height: 1.45; }
+  #learn-guide ol { padding-left: 20px; margin: 12px 0; }
+  #guide-state { color: #0be881 !important; }
+  #close-guide {
+    display: block;
+    margin: 16px 0 0 auto;
+    padding: 8px 18px;
+    border: 1px solid #0be881;
+    border-radius: 6px;
+    background: #173126;
+    color: #0be881;
+  }
+  .slider-wrapper {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+    min-height: 120px;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 55vh;
+    max-width: 90vw;
+    height: 40px;
+    background: transparent;
+    transform: rotate(-90deg);
+    position: absolute;
+    margin: 0;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    background: #111;
+    border-radius: 4px;
+    border: 1px solid #444;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 48px;
+    width: 64px;
+    border-radius: 5px;
+    background: linear-gradient(to bottom, #666, #333);
+    border: 1px solid #111;
+    margin-top: -20px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    background: #111;
+    border-radius: 4px;
+    border: 1px solid #444;
+  }
+  input[type=range]::-moz-range-thumb {
+    height: 48px;
+    width: 64px;
+    border-radius: 5px;
+    background: linear-gradient(to bottom, #666, #333);
+    border: 1px solid #111;
+    cursor: pointer;
+  }
+  .val-display {
+    margin-top: 16px;
+    font-size: 1.15rem;
+    color: #aaa;
+    width: 40px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+<script src="/main.js"></script>
+</head>
+<body>
+
+  <header class="brand" aria-label="ReaCC by Nolan Blomberg">
+    <div class="brand-mark" aria-label="ReaCC">
+      <span>Rea<span class="accent">CC</span></span>
+    </div>
+    <div class="brand-credit">by Nolan Blomberg</div>
+  </header>
+
+  <div id="status">Connecting to REAPER…</div>
+
+  <div class="faders">
+    <div class="fader-group">
+      <div class="label">CC</div>
+      <input type="number" class="cc-input" id="cc1" value="11" min="0" max="127">
+      <button class="learn-button locked" id="learn1" type="button">Learn VST</button>
+      <div class="slider-wrapper">
+        <input type="range" id="f1" min="0" max="10000" value="0" step="any">
+      </div>
+      <div class="val-display" id="val1">0</div>
+    </div>
+
+    <div class="fader-group">
+      <div class="label">CC</div>
+      <input type="number" class="cc-input" id="cc2" value="1" min="0" max="127">
+      <button class="learn-button locked" id="learn2" type="button">Learn VST</button>
+      <div class="slider-wrapper">
+        <input type="range" id="f2" min="0" max="10000" value="0" step="any">
+      </div>
+      <div class="val-display" id="val2">0</div>
+    </div>
+
+    <div class="fader-group">
+      <div class="label">CC</div>
+      <input type="number" class="cc-input" id="cc3" value="21" min="0" max="127">
+      <button class="learn-button locked" id="learn3" type="button">Learn VST</button>
+      <div class="slider-wrapper">
+        <input type="range" id="f3" min="0" max="10000" value="0" step="any">
+      </div>
+      <div class="val-display" id="val3">0</div>
+    </div>
+
+    <div class="fader-group">
+      <div class="label">CC</div>
+      <input type="number" class="cc-input" id="cc4" value="7" min="0" max="127">
+      <button class="learn-button locked" id="learn4" type="button">Learn VST</button>
+      <div class="slider-wrapper">
+        <input type="range" id="f4" min="0" max="10000" value="0" step="any">
+      </div>
+      <div class="val-display" id="val4">0</div>
+    </div>
+  </div>
+
+  <dialog id="learn-guide" aria-labelledby="guide-title">
+    <h2 id="guide-title">Unlock plug-in linking</h2>
+    <p class="guide-overview"><strong>What you’re unlocking:</strong> connect a ReaCC fader directly to a plug-in knob. The phone fader follows that knob and its automation, and moving the phone fader controls the plug-in. Your regular MIDI CC faders keep working without this setup.</p>
+    <p>The optional setup takes two REAPER steps. Add the bridge once, then start the mirror script each time you open REAPER.</p>
+    <h3>1. Add the bridge</h3>
+    <ol>
+      <li>In REAPER, choose <strong>View → Monitoring FX</strong>.</li>
+      <li>In the Monitoring FX window, click <strong>Add</strong>, search for <strong>CC Fader Bridge</strong>, and add <strong>JS: CC Fader Bridge</strong>.</li>
+    </ol>
+    <h3>2. Start the mirror script</h3>
+    <ol>
+      <li>Choose <strong>Actions → Show action list</strong>.</li>
+      <li>Click <strong>New action → Load ReaScript</strong>, select <strong>CC_Fader_Mirror.lua</strong>, then click <strong>Run</strong>.</li>
+      <li>Leave the script running. You’ll need to run it again next time REAPER opens.</li>
+    </ol>
+    <h3>3. Unlock and link a control</h3>
+    <ol>
+      <li>Open the instrument’s plug-in window and move the knob you want to link a little. This tells REAPER which control you mean; audio playback is not required.</li>
+      <li>When ReaCC unlocks, tap <strong>Learn VST</strong> on the fader you want to use. It links to the last plug-in control you moved.</li>
+    </ol>
+    <p id="guide-state">Waiting for the bridge and mirror script to respond…</p>
+    <p>If it stays locked, check that <strong>JS: CC Fader Bridge</strong> is in Monitoring FX and that <strong>CC_Fader_Mirror.lua</strong> is running. Then move the plug-in knob again.</p>
+    <button id="close-guide" type="button">Close</button>
+  </dialog>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const SEND_INTERVAL = 10;          // ms – how fast we send while dragging
+    const POLL_INTERVAL = 16;          // ms – about 60 updates per second for motor feedback
+
+    // Global ExtState section used by this interface (works across all projects)
+    const EXT_SECTION = 'CCFaders';
+    const remoteTargets = [0, 0, 0, 0];
+    const learnedSlots = [false, false, false, false];
+    let bridgeActive = false;
+    let remoteLearnAvailable = false;
+    let lastHeartbeatValue = null;
+    let lastHeartbeatAt = 0;
+    let heartbeatRun = 0;
+    let animationFrame = 0;
+    let lastAnimationTime = 0;
+
+    function animateFaders(now) {
+      const elapsed = lastAnimationTime ? Math.min(50, now - lastAnimationTime) : 16;
+      lastAnimationTime = now;
+      const amount = 1 - Math.exp(-elapsed / 45);
+      let stillMoving = false;
+
+      for (let num = 1; num <= 4; num++) {
+        const fader = document.getElementById('f' + num);
+        const display = document.getElementById('val' + num);
+        if (!fader || fader.matches(':active')) continue;
+        const current = parseFloat(fader.value) || 0;
+        const target = remoteTargets[num - 1];
+        const difference = target - current;
+        if (Math.abs(difference) < 0.08) {
+          fader.value = target;
+        } else {
+          fader.value = current + difference * amount;
+          stillMoving = true;
+        }
+        display.textContent = Math.round(parseFloat(fader.value) * 127 / 10000);
+      }
+
+      if (stillMoving) {
+        animationFrame = requestAnimationFrame(animateFaders);
+      } else {
+        animationFrame = 0;
+        lastAnimationTime = 0;
+      }
+    }
+
+    function setRemoteFader(num, value) {
+      remoteTargets[num - 1] = value;
+      if (!animationFrame) animationFrame = requestAnimationFrame(animateFaders);
+    }
+
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type || '';
+    }
+
+    function learnFeatureAvailable() {
+      return bridgeActive && (remoteLearnAvailable || learnedSlots.some(Boolean));
+    }
+
+    function refreshLearnUI() {
+      const available = learnFeatureAvailable();
+      for (let num = 1; num <= 4; num++) {
+        document.getElementById('learn' + num).classList.toggle('locked', !available);
+      }
+      const guideState = document.getElementById('guide-state');
+      if (!bridgeActive) {
+        guideState.textContent = 'Waiting for the REAPER bridge and mirror script to respond…';
+      } else if (available) {
+        guideState.textContent = 'Detected! Close this guide and tap Learn VST to link a control.';
+      } else {
+        guideState.textContent = 'REAPER is connected. Touch or move a VST control to unlock Learn.';
+      }
+    }
+
+    if (typeof wwr_start !== 'function' || typeof wwr_req !== 'function') {
+      setStatus('Not connected to REAPER. Add a “Web browser interface” in Preferences → Control/OSC/web, then reload.', 'error');
+    } else {
+      wwr_start();
+      setStatus('Connected', 'ok');
+    }
+
+    // ---------- Reply handler (for polling ExtStates) ----------
+    window.wwr_onreply = function(results) {
+      if (!results) return;
+      const lines = results.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const tok = lines[i].split('\t');
+        if (tok[0] === 'EXTSTATE' && tok[1] === EXT_SECTION) {
+          // EXTSTATE \t section \t key \t value
+          const key = tok[2];
+          const val = tok[3];
+          if (key && key.indexOf('val') === 0) {
+            const num = parseInt(key.substring(3), 10);
+            if (num >= 1 && num <= 4 && val !== undefined && val !== '') {
+              const ccValue = Math.max(0, Math.min(127, parseInt(val, 10) || 0));
+              document.getElementById('val' + num).textContent = ccValue;
+              if (!learnedSlots[num - 1]) setRemoteFader(num, ccValue * 10000 / 127);
+            }
+          }
+          if (key && key.indexOf('target') === 0) {
+            const num = parseInt(key.substring(6), 10);
+            if (num >= 1 && num <= 4 && val !== undefined && val !== '') {
+              const normalized = Math.max(0, Math.min(1, parseFloat(val) || 0));
+              if (learnedSlots[num - 1]) setRemoteFader(num, normalized * 10000);
+            }
+          }
+          if (key && key.indexOf('learn') === 0) {
+            const num = parseInt(key.substring(5), 10);
+            if (num >= 1 && num <= 4) {
+              const button = document.getElementById('learn' + num);
+              learnedSlots[num - 1] = val === '2';
+              if (button) {
+                button.classList.toggle('pending', val === '1');
+                button.classList.toggle('learned', val === '2');
+                button.classList.toggle('failed', val === '3');
+                button.textContent = val === '1' ? 'Learning…' : (val === '2' ? 'Learned ✓' : (val === '3' ? 'Touch VST first' : 'Learn VST'));
+              }
+              refreshLearnUI();
+            }
+          }
+          if (key === 'learnAvailable') {
+            remoteLearnAvailable = val === '1';
+            refreshLearnUI();
+          }
+          if (key === 'bridgeHeartbeat' && val !== undefined && val !== '') {
+            if (val !== lastHeartbeatValue) {
+              const now = Date.now();
+              if (lastHeartbeatValue !== null && now - lastHeartbeatAt <= 1500) {
+                heartbeatRun++;
+              } else {
+                heartbeatRun = 0;
+              }
+              lastHeartbeatValue = val;
+              lastHeartbeatAt = now;
+              bridgeActive = heartbeatRun >= 2;
+              refreshLearnUI();
+            }
+          }
+        }
+      }
+    };
+
+    // ---------- Per-fader logic ----------
+    function setupFader(num) {
+      const fader = document.getElementById('f' + num);
+      const ccInput = document.getElementById('cc' + num);
+      const valDisplay = document.getElementById('val' + num);
+
+      let lastSent = 0;
+      let pending = false;
+
+      function sendValue() {
+        if (typeof wwr_req !== 'function') return;
+
+        const now = performance.now();
+        if (now - lastSent < SEND_INTERVAL) {
+          if (!pending) {
+            pending = true;
+            setTimeout(() => {
+              pending = false;
+              sendValue();
+            }, SEND_INTERVAL - (now - lastSent));
+          }
+          return;
+        }
+
+        lastSent = now;
+        const cc = parseInt(ccInput.value, 10) || 0;
+        const normalized = Math.max(0, Math.min(1, (Number(fader.value) || 0) / 10000));
+        const ccValue = Math.round(normalized * 127);
+        valDisplay.textContent = ccValue;
+
+        if (learnedSlots[num - 1]) {
+          // Learned VSTs get high-resolution normalized parameter values.
+          wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/target' + num + '/' + normalized.toFixed(6));
+        } else {
+          wwr_req('OSC/vkb_midi/0/cc/' + cc + ':' + ccValue);
+          wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/val' + num + '/' + ccValue);
+        }
+      }
+
+      fader.addEventListener('input', (e) => {
+        valDisplay.textContent = Math.round((Number(e.target.value) || 0) * 127 / 10000);
+        sendValue();
+      });
+
+      // Also remember the CC number the user chose
+      ccInput.addEventListener('change', () => {
+        const cc = parseInt(ccInput.value, 10) || 0;
+        wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/cc' + num + '/' + cc);
+      });
+
+      const learnButton = document.getElementById('learn' + num);
+      learnButton.addEventListener('click', () => {
+        if (!learnFeatureAvailable()) {
+          document.getElementById('learn-guide').showModal();
+          return;
+        }
+        const active = learnButton.classList.contains('pending') || learnButton.classList.contains('learned');
+        if (active) {
+          // A second tap cancels pending learn or removes an existing link.
+          wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/unlink' + num + '/1');
+          wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/learn' + num + '/0');
+          learnedSlots[num - 1] = false;
+          learnButton.classList.remove('pending', 'learned', 'failed');
+          learnButton.textContent = 'Learn VST';
+        } else {
+          wwr_req('SET/EXTSTATE/' + EXT_SECTION + '/learn' + num + '/1');
+          learnButton.classList.add('pending');
+          learnButton.classList.remove('failed');
+          learnButton.textContent = 'Learning…';
+        }
+      });
+    }
+
+    document.getElementById('close-guide').addEventListener('click', () => {
+      document.getElementById('learn-guide').close();
+    });
+
+    for (let i = 1; i <= 4; i++) {
+      setupFader(i);
+    }
+
+    // ---------- Poll ExtStates so faders auto-update ----------
+    function startPolling() {
+      if (typeof wwr_req_recur !== 'function') return;
+
+      // Request all four values + the stored CC numbers
+      const req = [
+        'GET/EXTSTATE/' + EXT_SECTION + '/val1',
+        'GET/EXTSTATE/' + EXT_SECTION + '/val2',
+        'GET/EXTSTATE/' + EXT_SECTION + '/val3',
+        'GET/EXTSTATE/' + EXT_SECTION + '/val4',
+        'GET/EXTSTATE/' + EXT_SECTION + '/cc1',
+        'GET/EXTSTATE/' + EXT_SECTION + '/cc2',
+        'GET/EXTSTATE/' + EXT_SECTION + '/cc3',
+        'GET/EXTSTATE/' + EXT_SECTION + '/cc4',
+        'GET/EXTSTATE/' + EXT_SECTION + '/learn1',
+        'GET/EXTSTATE/' + EXT_SECTION + '/learn2',
+        'GET/EXTSTATE/' + EXT_SECTION + '/learn3',
+        'GET/EXTSTATE/' + EXT_SECTION + '/learn4',
+        'GET/EXTSTATE/' + EXT_SECTION + '/learnAvailable',
+        'GET/EXTSTATE/' + EXT_SECTION + '/bridgeHeartbeat',
+        'GET/EXTSTATE/' + EXT_SECTION + '/target1',
+        'GET/EXTSTATE/' + EXT_SECTION + '/target2',
+        'GET/EXTSTATE/' + EXT_SECTION + '/target3',
+        'GET/EXTSTATE/' + EXT_SECTION + '/target4'
+      ].join(';');
+
+      wwr_req_recur(req, POLL_INTERVAL);
+    }
+
+    // Load any previously stored CC numbers once at startup
+    window.wwr_onreply_orig = window.wwr_onreply;
+    // (the main handler above already processes valN; we can also restore ccN)
+    const originalOnReply = window.wwr_onreply;
+    window.wwr_onreply = function(results) {
+      originalOnReply(results);
+      if (!results) return;
+      const lines = results.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const tok = lines[i].split('\t');
+        if (tok[0] === 'EXTSTATE' && tok[1] === EXT_SECTION && tok[2] && tok[2].indexOf('cc') === 0) {
+          const num = parseInt(tok[2].substring(2), 10);
+          if (num >= 1 && num <= 4 && tok[3] !== undefined && tok[3] !== '') {
+            const input = document.getElementById('cc' + num);
+            if (input && document.activeElement !== input && input.value !== tok[3]) {
+              input.value = tok[3];
+            }
+          }
+        }
+      }
+    };
+
+    // Start everything
+    if (typeof wwr_start === 'function') {
+      // Initial request for saved values
+      wwr_req('GET/EXTSTATE/' + EXT_SECTION + '/val1;GET/EXTSTATE/' + EXT_SECTION + '/val2;GET/EXTSTATE/' + EXT_SECTION + '/val3;GET/EXTSTATE/' + EXT_SECTION + '/val4;GET/EXTSTATE/' + EXT_SECTION + '/cc1;GET/EXTSTATE/' + EXT_SECTION + '/cc2;GET/EXTSTATE/' + EXT_SECTION + '/cc3;GET/EXTSTATE/' + EXT_SECTION + '/cc4;GET/EXTSTATE/' + EXT_SECTION + '/learn1;GET/EXTSTATE/' + EXT_SECTION + '/learn2;GET/EXTSTATE/' + EXT_SECTION + '/learn3;GET/EXTSTATE/' + EXT_SECTION + '/learn4;GET/EXTSTATE/' + EXT_SECTION + '/learnAvailable;GET/EXTSTATE/' + EXT_SECTION + '/bridgeHeartbeat;GET/EXTSTATE/' + EXT_SECTION + '/target1;GET/EXTSTATE/' + EXT_SECTION + '/target2;GET/EXTSTATE/' + EXT_SECTION + '/target3;GET/EXTSTATE/' + EXT_SECTION + '/target4');
+      startPolling();
+    }
+
+    setInterval(() => {
+      if (bridgeActive && Date.now() - lastHeartbeatAt > 1500) {
+        bridgeActive = false;
+        heartbeatRun = 0;
+        refreshLearnUI();
+      }
+    }, 250);
+  </script>
+</body>
+</html>
